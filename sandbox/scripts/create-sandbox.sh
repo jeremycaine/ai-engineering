@@ -2,11 +2,11 @@
 # Usage: create-sandbox.sh <sandbox-name> <repo> <policy-file> [provider]
 #
 # Environment:
+#   ORG              required. GitHub organisation or user that owns the repo.
+#   AGENT_GIT_NAME   required. GitHub username of the agent account (used as the commit name).
 #   AGENT_GIT_EMAIL  required. Commit email of the agent account.
 #                    Use its GitHub noreply address: <id>+<user>@users.noreply.github.com
-#   AGENT_GIT_NAME   commit name (default: arkowave-agent)
-#   ORG              GitHub organisation or user that owns the repo (default: arkowave-todo)
-#   IMAGE            sandbox image (default: localhost/todo-sandbox-base:0.3)
+#   IMAGE            sandbox image (default: localhost/agent-sandbox-claude:0.1)
 set -euo pipefail
 
 if [ $# -lt 3 ] || [ $# -gt 4 ]; then
@@ -18,9 +18,9 @@ NAME=$1
 REPO=$2
 POLICY=$3
 PROVIDER=${4:-}
-ORG=${ORG:-arkowave-todo}
-IMAGE=${IMAGE:-localhost/todo-sandbox-base:0.3}
-GIT_NAME=${AGENT_GIT_NAME:-arkowave-agent}
+ORG=${ORG:?Set ORG to the GitHub organisation or user that owns the repo}
+IMAGE=${IMAGE:-localhost/agent-sandbox-claude:0.1}
+GIT_NAME=${AGENT_GIT_NAME:?Set AGENT_GIT_NAME to the GitHub username of the agent account}
 GIT_EMAIL=${AGENT_GIT_EMAIL:?Set AGENT_GIT_EMAIL to the GitHub noreply address of the agent account}
 
 for value in "$NAME" "$REPO" "$ORG" "$GIT_NAME"; do
