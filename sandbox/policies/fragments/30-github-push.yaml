@@ -1,0 +1,19 @@
+  github_repository_push:
+    name: github-repository-push
+    endpoints:
+      - host: github.com
+        port: 443
+        protocol: rest
+        enforcement: enforce
+        rules:
+          - allow:
+              method: GET
+              path: "/{{ORG}}/{{REPO}}.git/info/refs*"
+          - allow:
+              method: POST
+              path: "/{{ORG}}/{{REPO}}.git/git-upload-pack"
+          - allow:
+              method: POST
+              path: "/{{ORG}}/{{REPO}}.git/git-receive-pack"
+    binaries:
+      - path: /usr/bin/git
