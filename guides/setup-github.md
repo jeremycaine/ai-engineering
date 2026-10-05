@@ -117,12 +117,12 @@ Add anything that must never be committed: runtime data, build output.
 
 ### The ruleset
 
-The script needs the GitHub CLI (see setup-env.md). For now, copy
-[apply-repo-rules.sh](https://github.com/arkowave-todo/todo-platform/blob/main/scripts/apply-repo-rules.sh)
-into your project repo. Change the `ORG=` line near the top to your org. Then:
+The script is `sandbox/scripts/apply-repo-rules.sh` in this repo. It needs the GitHub CLI
+(see setup-env.md) and admin access on the repo. It is safe to run again: it updates the
+ruleset if it exists. From the root of this repo:
 
 ```
-./scripts/apply-repo-rules.sh <repo> <approvals>
+sandbox/scripts/apply-repo-rules.sh <org> <repo> <approvals>
 ```
 
 The last number is the required approvals:
