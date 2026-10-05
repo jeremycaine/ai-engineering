@@ -1,60 +1,101 @@
 # GitHub Setup
 
-Accounts in this guide:
-- `jeremycaine`: the human. Owns the org, reviews and merges every PR.
-- `arkowave-agent`: the agent account. Agents push branches as this account.
+Names in this guide:
+- `<you>` is your own GitHub account. You review and merge.
+- `<agent>` is the agent account.
+- `<org>` is the organisation or user that owns the repos.
 
 ## 0. Summary
 
-1. Create the GitHub user for agents
-2. Create the project organisation and set its rules
-3. Create the project repos with `.gitignore` and license
-4. For each repo, update `.gitignore` and add `.github/CODEOWNERS`
-5. Add the ruleset script to `todo-platform`
-6. Apply the ruleset to each repo
-7. Create teams in the org and add members
-8. Generate tokens
-9. Adding a repo later
+1. Choose a mode for each repo: push or read
+2. The agent account
+3. Organisation settings
+4. Get access to the repo
+5. Push mode: files, rules and teams
+6. Read mode
+7. Tokens
+8. Adding a repo later
 
-## 1. GitHub user for agents
+## 1. Push mode or read mode
 
-- Create a separate email address for the agent: `<email address here>`.
-  GitHub does not allow one email on two accounts. An alias in your mail admin
-  console works.
-- Make a new `arkowave-agent` account:
-    - private browser window: https://github.com/signup
-    - email `<email address here>` and username `arkowave-agent`
-- Turn on two-factor authentication: Settings > Password and authentication.
+| | Push mode | Read mode |
+| --- | --- | --- |
+| Use when | GitHub can enforce "no direct push to `main`": a public repo, or a paid plan | The repo is private on the Free plan, or has no branch rules |
+| The agent | Pushes branches. You review and merge the pull request. | Commits in the sandbox and cannot push. You bring the commits out and push. |
+| Token | Read and write | Read-only |
+
+GitHub's documentation says that rulesets are available in public repos on the Free plan,
+and in public and private repos on Pro, Team and Enterprise. A ruleset is what stops an
+agent that has write access from pushing to `main`. Where you cannot have one, take away
+the write access instead.
+
+Choose the mode for each repo. If in doubt, use read mode.
+
+If a push to `main` publishes your site or your package, treat `main` as a release.
+Credentials that publish stay with you and never go into a sandbox.
+
+## 2. The agent account
+
+Do this once. The account gives the agent a commit identity. In push mode it also owns the tokens.
+
+- Make a separate email address for the agent. GitHub does not allow one email on two
+  accounts. An alias in your mail console works.
+- Make the account in a private browser window: https://github.com/signup
+- Turn on two-factor authentication (Settings > Password and authentication).
   Save the recovery codes in your password manager.
-- Set the profile bio to say who operates the account, e.g. "Agent account for
-  arkowave-todo. Operated by @jeremycaine".
+- Set the profile bio to say who operates the account.
+- Settings > Emails: turn on **Keep my email addresses private** and
+  **Block command line pushes that expose my email**. GitHub then rejects a push
+  whose commits carry any other address.
+- Find the account id and form its noreply address:
 
-## 2. Project Organisation
+```
+gh api users/<agent> --jq .id
+```
 
-GitHub as `jeremycaine`
-- Create org `arkowave-todo` (Free plan)
-- Add member `arkowave-agent`, then accept the invite from that account
-- Org Settings > Member privileges:
-    - Base permissions: **No permission**. Access then comes only from teams.
-    - Repository creation by members: off
-- Org Settings > Personal access tokens: allow fine-grained tokens, and require
-  approval for each token
+The address is `<id>+<agent>@users.noreply.github.com`. It is public by design and
+receives no mail. Put it in your shell profile (`~/.zshrc`):
 
-## 3. Repos
+```
+export AGENT_GIT_EMAIL="<id>+<agent>@users.noreply.github.com"
+```
 
-GitHub as `jeremycaine`
-- Create repos
-    - repos: `todo-spec`; `todo-fe-web`; `todo-api`; `todo-platform`
-    - visibility: public
-    - `.gitignore` type: Node
-    - license: MIT
+## 3. Organisation settings
 
-## 4. Repo Additions
+Skip this for a personal account. An org owner sets these (the menu names can change):
 
-Commit these to `main` now. After step 6, `main` accepts changes only through a PR.
+- Settings > Member privileges: **Base permissions: No permission**, so that access comes
+  only from teams. **Repository creation by members: off**.
+- Settings > Personal access tokens: allow fine-grained tokens, and require approval for each token.
 
-### .gitignore
-For each add
+## 4. Get access to the repo
+
+You need access to review and to push.
+
+- In an org, an owner invites you: org > People > Invite member. For one repo, the owner
+  adds you under repo Settings > Collaborators and teams, with the **Write** role.
+- Accept the invitations as yourself:
+    - `https://github.com/orgs/<org>/invitation` for the org
+    - `https://github.com/<org>/<repo>/invitations` for the repo
+- A private repo returns 404 until you accept. Check your access:
+
+```
+gh api repos/<org>/<repo> --jq '{private: .private, default_branch: .default_branch, push: .permissions.push}'
+```
+
+You must see `push: true`. A 404 means no access, or an invitation that you have not accepted.
+
+Keep every agent account off the access list of the repo that records the sandbox
+settings (see setup-project.md).
+
+## 5. Push mode: files, rules and teams
+
+### Files for each repo
+
+Commit these to `main` first. After the ruleset, `main` accepts changes only through a PR.
+
+- A `.gitignore` with at least:
+
 ```
 # macOS
 .DS_Store
@@ -67,132 +108,93 @@ For each add
 # Editor
 .vscode/
 .idea/
-
-# TypeScript
-dist/
-*.tsbuildinfo
 ```
 
-`todo-spec`
-```
-playwright-report/
-test-results/
-k6-results/
-```
+Add anything that must never be committed: runtime data, build output.
 
-`todo-fe-web`
-```
-.astro/
-```
+- A `.github/CODEOWNERS` file with `* @<you>`.
+- A license.
 
-`todo-api`
-```
-# Todo text files (runtime data, not source)
-data/
-```
+### The ruleset
 
-`todo-fe-ios`
-```
-xcuserdata/
-*.xcuserstate
-```
-
-### CODEOWNERS
-On each repo page:
-- add file `.github/CODEOWNERS` with
-- `* @jeremycaine`
-
-## 5. Add the ruleset script
-
-The script needs the GitHub CLI (`gh`, see setup-env.md).
-
-- Copy [apply-repo-rules.sh](https://github.com/arkowave-todo/todo-platform/blob/main/scripts/apply-repo-rules.sh)
-  to `scripts/apply-repo-rules.sh` in `todo-platform`.
-- Push it to `main` now, before any ruleset exists.
-- Make it executable:
+The script needs the GitHub CLI (see setup-env.md). For now, copy
+[apply-repo-rules.sh](https://github.com/arkowave-todo/todo-platform/blob/main/scripts/apply-repo-rules.sh)
+into your project repo. Change the `ORG=` line near the top to your org. Then:
 
 ```
-cd todo-platform
-chmod +x scripts/apply-repo-rules.sh
-```
-
-## 6. Apply the ruleset for each repo
-
-```
-cd todo-platform
-./scripts/apply-repo-rules.sh todo-platform 0
-./scripts/apply-repo-rules.sh todo-spec 0
-./scripts/apply-repo-rules.sh todo-api 1
-./scripts/apply-repo-rules.sh todo-fe-web 1
+./scripts/apply-repo-rules.sh <repo> <approvals>
 ```
 
 The last number is the required approvals:
 - `0` where only you have access. GitHub does not let you approve your own PR.
-- `1` for code repos. Agent PRs need your approval.
+- `1` for code repos where the agent opens pull requests. They need your approval.
 
 The script adds a ruleset `main-protection` (no deletion, no force push, PR required)
-and turns on secret scanning and push protection.
-
-Check each repo:
+and turns on secret scanning and push protection. Check each repo:
 - Settings > Rules: `main-protection` is active
 - Settings > Advanced Security: secret scanning and push protection are enabled
 - A direct push to `main` is refused
 
-## 7. Create Teams and add members
+### Teams
 
-Org `arkowave-todo`
-- Teams
-    - New teams: `dev-api` and `dev-frontend`
-    - add team member `arkowave-agent`
-- Repos > Settings > Collaborators and teams > Add Team with *Write*
-    - `todo-api`: team `dev-api`
-    - `todo-fe-web`: team `dev-frontend`
+For each code repo, make a team, add `<agent>`, and give the team **Write** on that repo only.
+The agent account has no access to the spec repo or the project repo.
 
-`arkowave-agent` has no access to `todo-spec` or `todo-platform`.
+## 6. Read mode
 
-## 8. Generate tokens
+There is no ruleset, so the protection comes from taking write access away:
 
-One fine-grained token per code repo. Each sandbox gets only its own token.
-There is no token for `todo-spec` or `todo-platform`.
+- the token is read-only (section 7),
+- the sandbox policy has no push rule (setup-project.md renders it for you),
+- no agent account has access to the repo that records the sandbox settings.
 
-GitHub as `arkowave-agent`
-- Settings > Developer settings > Personal access tokens > Fine-grained tokens
-    - Generate new token
-    - Token name: `pat-todo-api` (then `pat-todo-fe-web`)
-    - Resource owner: `arkowave-todo`
-    - Expiration: 30 days
-    - Repository access: Only select repositories > one repo, e.g. `todo-api`
-    - Permissions:
-        - Contents: Read and write
-        - Pull requests: Read and write
-        - Metadata: Read-only (GitHub adds this automatically)
-    - Generate token
-    - Copy the token. GitHub shows it only once. Do not paste it into a file or a chat.
+Keep the access list of the repo short, and check it when you add people. You push
+branches from your own clone. Find out whether a branch deploys before you push one.
 
-The token goes into the provider command in setup-sandbox.md, step 4.
+The token can come from any account that has read access to the repo, as long as it is
+scoped to that one repo and is read-only.
 
-GitHub as `jeremycaine`
-- Org `arkowave-todo` > Settings > Personal access tokens > Pending requests
-    - Approve each token.
-    - Without approval, `git push` fails with 403.
+## 7. Tokens
 
-Rotation
-- Set a calendar reminder for day 25.
-- Make a new token, update the provider, then revoke the old token.
+One fine-grained token per repo. Each sandbox gets only its own.
 
-## 9. Adding a repo later (e.g. `todo-fe-ios`)
+GitHub: Settings > Developer settings > Personal access tokens > Fine-grained tokens >
+Generate new token.
 
-### Setup for any repo
-1. Create the repo (public), with the right `.gitignore` template and the MIT license
-2. Add the `.gitignore` additions and `.github/CODEOWNERS`
-    - Push to `main` now, before the ruleset
-3. Run `./scripts/apply-repo-rules.sh <repo> <approvals>`
-    - 1 for code repos, 0 for spec and platform
-4. Code repos only: create the team, add `arkowave-agent`, give Write on this repo only
-    - Spec and platform repos: no team, no agent access
-5. Check: the ruleset is active, secret scanning is enabled, and a direct push to `main` is refused
+- Token name: `pat-<repo>`
+- Resource owner: `<org>`
+- Expiration: 30 days
+- Repository access: **Only select repositories**, and pick one repo
+- Permissions:
+    - Contents: **Read and write** in push mode, **Read-only** in read mode
+    - Pull requests: **Read and write** in push mode, **No access** in read mode
+    - Metadata: Read-only (GitHub adds it)
+- Copy the token. GitHub shows it only once. Do not paste it into a file or a chat.
 
-### Sandbox setup for a repo (see setup-sandbox.md)
-6. Code repos only: make its token (step 8) and have `jeremycaine` approve it
-7. Add its policy file in `todo-platform`, through a PR
-8. Check: a push to a test branch works, and a push to another repo is refused (403)
+An org owner approves each token: org > Settings > Personal access tokens > Pending requests.
+Until then, requests fail.
+
+Test the token before you use it. This reads it without showing it:
+
+```
+read -s "GITHUB_TOKEN?Paste token and press Enter: "
+curl -s -o /dev/null -w "%{http_code}\n" -H "Authorization: Bearer $GITHUB_TOKEN" https://api.github.com/repos/<org>/<repo>
+unset GITHUB_TOKEN
+```
+
+- `200`: the token reaches the repo.
+- `404`: no access, or the token is not approved yet.
+- `401`: the value is wrong.
+
+The token goes into the provider command in setup-project.md.
+
+Rotation: set a calendar reminder for day 25. Make a new token and test it, update the
+provider, then revoke the old token.
+
+## 8. Adding a repo later
+
+1. Choose its mode (section 1).
+2. Push mode: add the files, run the ruleset script, make the team (section 5).
+   Read mode: check the access list (section 6).
+3. Make and test its token (section 7).
+4. Add it as a project (setup-project.md).

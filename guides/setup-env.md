@@ -56,8 +56,9 @@ podman machine rm
 
 ## 2. GitHub CLI
 
-Used on your Mac by `scripts/apply-repo-rules.sh` (see setup-github.md).
-Log in with your own GitHub account, not the agent account. Never run it in a sandbox.
+Used on your Mac to apply repo rules, to look up the agent account id, and to check
+your access to a repo (see setup-github.md). Log in with your own GitHub account, not
+the agent account. Never run it in a sandbox.
 
 ```
 brew install gh
