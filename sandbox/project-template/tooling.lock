@@ -1,0 +1,5 @@
+# The version of the ai-engineering tooling that this repo uses.
+# Pin a commit, not a tag. A tag can be moved.
+TOOLING_REPO=https://github.com/jeremycaine/ai-engineering.git
+TOOLING_TAG=v0.1.0
+TOOLING_COMMIT=fbd71ddaef8e26026c0e76db57bca1b54d204914
