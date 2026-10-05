@@ -85,7 +85,7 @@ The example project lives in the GitHub organisation [arkowave-todo](https://git
 - [x] System description, architecture model, ADRs and requirements for the todo app
 - [x] The reusable sandbox tooling in `sandbox/`
 - [x] A read mode for private repos, tested on a real website repo
-- [ ] Move the ruleset script (`apply-repo-rules.sh`) into `sandbox/scripts/`
+- [x] Move the ruleset script (`apply-repo-rules.sh`) into `sandbox/scripts/`
 - [ ] Component specs and the API contract
 - [ ] Deployment (test and prod)
 - [ ] Release r1: web frontend can create and view todos
