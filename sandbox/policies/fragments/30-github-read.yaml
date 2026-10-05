@@ -1,0 +1,16 @@
+  github_repository_read:
+    name: github-repository-read
+    endpoints:
+      - host: github.com
+        port: 443
+        protocol: rest
+        enforcement: enforce
+        rules:
+          - allow:
+              method: GET
+              path: "/{{ORG}}/{{REPO}}.git/info/refs*"
+          - allow:
+              method: POST
+              path: "/{{ORG}}/{{REPO}}.git/git-upload-pack"
+    binaries:
+      - path: /usr/bin/git

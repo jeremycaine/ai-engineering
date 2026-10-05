@@ -1,0 +1,20 @@
+  claude_code:
+    name: claude_code
+    endpoints:
+      - host: api.anthropic.com
+        port: 443
+        protocol: rest
+        enforcement: enforce
+        access: read-write
+      - host: claude.ai
+        port: 443
+        protocol: rest
+        enforcement: enforce
+        access: read-write
+      - host: platform.claude.com
+        port: 443
+        protocol: rest
+        enforcement: enforce
+        access: read-write
+    binaries:
+      - path: /usr/local/lib/node_modules/@anthropic-ai/claude-code/bin/claude.exe
