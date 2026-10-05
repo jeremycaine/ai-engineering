@@ -12,31 +12,48 @@ Status: work in progress. The guides describe what has been built and tested.
 
 - **Architecture first.** Describe the system, model it, record the decisions, write the requirements, then build.
 - **Agents in sandboxes.** Each agent works in its own sandbox, with its own network policy and its own token.
-- **Humans decide.** Agents draft and push branches. A person reviews every pull request and merges it.
+- **Humans decide.** Agents draft. A person reviews every change before it reaches `main`.
 - **Repeatable.** Images, policies, profiles and scripts are files in a repo, so a new project starts from them.
 
 ## What is here
 
-| Folder | Holds | Status |
-| --- | --- | --- |
-| [guides/](guides/) | The setup and daily-use guides | Done |
-| `sandbox/` | Base image, agent layers, provider profiles, policy templates, scripts | Coming |
+| Folder | Holds |
+| --- | --- |
+| [guides/](guides/) | The setup and daily-use guides |
+| `sandbox/images/` | The base image and the agent layers |
+| `sandbox/policies/` | Policy fragments, one per concern |
+| `sandbox/providers/` | The GitHub provider profile |
+| `sandbox/scripts/` | Create a sandbox, render a policy, bring work out for review |
+| `sandbox/project-template/` | The starting point for a project repo |
 
 ## Order of work
 
 Do the guides in this order. Each one needs the one before it.
 
 1. [setup-env.md](guides/setup-env.md): Podman, GitHub CLI, OpenShell and the gateway service
-2. [setup-github.md](guides/setup-github.md): agent account, org, repos, rulesets, teams, tokens
-3. [setup-sandbox.md](guides/setup-sandbox.md): base image, policies, providers, tested sandboxes
-4. [daily-use.md](guides/daily-use.md): open a shell, run an agent, stop and start
+2. [setup-github.md](guides/setup-github.md): the agent account, organisation settings, repo access, rules and tokens
+3. [setup-sandbox.md](guides/setup-sandbox.md): the images, the provider profile and how policies are built (once per machine)
+4. [setup-project.md](guides/setup-project.md): one project: its settings, token, policy and sandbox (once per project)
+5. [daily-use.md](guides/daily-use.md): open a shell, run an agent, bring work out, stop and start
+
+## Two modes
+
+Choose a mode for each repo.
+
+| | Push mode | Read mode |
+| --- | --- | --- |
+| Use when | GitHub can enforce "no direct push to `main`": a public repo, or a paid plan | The repo is private on the Free plan, or has no branch rules |
+| The agent | Pushes branches. You review and merge the pull request. | Commits in the sandbox and cannot push. You bring the commits out and push. |
+| Token | Contents and pull requests: read and write | Contents: read-only |
+| Worked example | The todo app | A private website repo |
 
 ## How the safety fits together
 
 - **Sandbox:** the agent runs in a container with no access to your machine's files.
-- **Policy:** network access is deny by default. Each sandbox may push to its own repo only.
-- **Token:** one fine-grained GitHub token per code repo. The agent sees a placeholder, not the token.
-- **Repo rules:** `main` accepts changes only through a pull request.
+- **Policy:** network access is deny by default. A sandbox in push mode may push to its own repo only. A sandbox in read mode has no push rule at all.
+- **Token:** one fine-grained GitHub token per repo. The agent sees a placeholder, not the token.
+- **Repo rules:** where GitHub can enforce them, `main` accepts changes only through a pull request. Where it cannot, the agent has no write access.
+- **Publishing credentials** (hosting, deploy tools) stay with you and never go into a sandbox.
 
 ## Agents
 
@@ -60,13 +77,15 @@ The example project lives in the GitHub organisation [arkowave-todo](https://git
 | [todo-api](https://github.com/arkowave-todo/todo-api) | Backend (Fastify) |
 | [todo-fe-web](https://github.com/arkowave-todo/todo-fe-web) | Web frontend (Astro) |
 | todo-fe-ios | iOS frontend (SwiftUI), planned for release r2 |
-| [todo-platform](https://github.com/arkowave-todo/todo-platform) | Sandbox image, policies, provider profiles and scripts for this project |
+| [todo-platform](https://github.com/arkowave-todo/todo-platform) | The project repo for the todo sandboxes, from before the template existed |
 
 ## Plan
 
 - [x] Environment, GitHub and sandbox setup
 - [x] System description, architecture model, ADRs and requirements for the todo app
-- [ ] Move the reusable sandbox tooling into `sandbox/`
+- [x] The reusable sandbox tooling in `sandbox/`
+- [x] A read mode for private repos, tested on a real website repo
+- [ ] Move the ruleset script (`apply-repo-rules.sh`) into `sandbox/scripts/`
 - [ ] Component specs and the API contract
 - [ ] Deployment (test and prod)
 - [ ] Release r1: web frontend can create and view todos
